@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum LabOrderStatus {
+  BOOKED
+  SAMPLE_COLLECTED
+  IN_PROCESS
+  COMPLETED
+  REPORT_READY
+  DELIVERED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum ReportVisibility {
+  INTERNAL
+  PUBLISHED
+}
+
+model Patient {
+  id            String         @id @default(cuid())
+  branchId      String?
+  registration  String         @unique
+  fullName      String
+  phone         String         @unique
+  email         String?
+  dateOfBirth   DateTime?
+  gender        String?
+  address       String?
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  appointments  Appointment[]
+  labOrders     LabOrder[]
+  bills         Bill[]
+  reports       Report[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Doctor {
+  id             String         @id @default(cuid())
+  branchId       String?
+  fullName       String
+  slug           String         @unique
+  specialty      String
+  registrationNo String?
+  bio            String?
+  availability   String?
+  consultationFee Int?
+  branch         Branch?        @relation(fields: [branchId], references: [id])
+  appointments   Appointment[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Branch {
+  id           String        @id @default(cuid())
+  name         String
+  code         String        @unique
+  phone        String?
+  email        String?
+  address      String?
+  doctors      Doctor[]
+  patients     Patient[]
+  appointments Appointment[]
+  labOrders    LabOrder[]
+  bills        Bill[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Service {
+  id             String        @id @default(cuid())
+  name           String
+  slug           String        @unique
+  category       String
+  description    String
+  turnaroundTime String?
+  price          Int
+  isPackage      Boolean       @default(false)
+  labTest        LabTest?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model LabTest {
+  id          String     @id @default(cuid())
+  serviceId   String     @unique
+  specimen    String?
+  preparation String?
+  service     Service    @relation(fields: [serviceId], references: [id])
+  labOrders   LabOrder[]
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  bookingNumber   String            @unique
+  patientId       String
+  doctorId        String
+  branchId        String?
+  appointmentDate DateTime
+  status          AppointmentStatus @default(PENDING)
+  visitType       String
+  notes           String?
+  patient         Patient           @relation(fields: [patientId], references: [id])
+  doctor          Doctor            @relation(fields: [doctorId], references: [id])
+  branch          Branch?           @relation(fields: [branchId], references: [id])
+  bill            Bill?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model LabOrder {
+  id            String         @id @default(cuid())
+  bookingNumber String         @unique
+  patientId     String
+  branchId      String?
+  serviceId     String
+  status        LabOrderStatus @default(BOOKED)
+  sampleCode    String?
+  notes         String?
+  bookedAt      DateTime       @default(now())
+  completedAt   DateTime?
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  service       LabTest        @relation(fields: [serviceId], references: [id])
+  reports       Report[]
+  bill          Bill?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Bill {
+  id             String        @id @default(cuid())
+  billNumber     String        @unique
+  patientId      String
+  branchId       String?
+  appointmentId  String?       @unique
+  labOrderId     String?       @unique
+  amount         Int
+  discountAmount Int           @default(0)
+  paymentStatus  PaymentStatus @default(UNPAID)
+  issuedAt       DateTime      @default(now())
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  branch         Branch?       @relation(fields: [branchId], references: [id])
+  appointment    Appointment?  @relation(fields: [appointmentId], references: [id])
+  labOrder       LabOrder?     @relation(fields: [labOrderId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Report {
+  id            String           @id @default(cuid())
+  patientId     String
+  labOrderId    String?
+  title         String
+  fileUrl       String
+  visibility    ReportVisibility @default(INTERNAL)
+  publishedAt   DateTime?
+  patient       Patient          @relation(fields: [patientId], references: [id])
+  labOrder      LabOrder?        @relation(fields: [labOrderId], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
