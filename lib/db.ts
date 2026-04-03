@@ -30,7 +30,16 @@ export async function getDoctors() {
        FROM doctors
        ORDER BY full_name`
     )
-    .all();
+    .all() as Array<{
+      id: string;
+      slug: string;
+      fullName: string;
+      specialty: string;
+      registrationNo: string | null;
+      bio: string | null;
+      availability: string | null;
+      consultationFee: number | null;
+    }>;
 }
 
 export async function getServices() {
@@ -40,7 +49,16 @@ export async function getServices() {
        FROM services
        ORDER BY category, name`
     )
-    .all();
+    .all() as Array<{
+      id: string;
+      slug: string;
+      name: string;
+      category: string;
+      description: string;
+      turnaroundTime: string | null;
+      price: number;
+      isPackage: number;
+    }>;
 }
 
 export async function getAppointments() {
